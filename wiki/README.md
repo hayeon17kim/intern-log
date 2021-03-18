@@ -44,6 +44,7 @@ SOA(Service Oriented Architecture)의 경량화 버전으로 Monolithic Architec
 - 서비스 개수가 많고 유동적이기 때문에 Continuous Integration/Delivery 및 서비스 관리 상의 문제가 발생할 수 있다.
 - monolith로 시작한 시스템을 Microservices로 전환할 때 큰 고통이 수반될 수 있다.
 
+---
 
 ## SRE (Site Reliability Engineering)
 
@@ -88,6 +89,8 @@ SOA(Service Oriented Architecture)의 경량화 버전으로 Monolithic Architec
     - 여유 값을 둘 것
     - 과도하게 하지 말 것
 
+---
+
 ## Jenkins
 
 ### 개념
@@ -109,6 +112,8 @@ SOA(Service Oriented Architecture)의 경량화 버전으로 Monolithic Architec
 - 빌드 파이프라인 구성
 - 자동화 테스트: 젠킨스는 Subversion이나 Git과 같은 버전 관리 시스템과 연동하여 코드 변경을 감지하고 자동화 테스트를 수행하기 때문에 개인이 미처 실시하지 못한 테스트가 있다 해도 든든한 안전망이 되어준다.
 - 코드 표준 준수 여부 검사
+
+---
 
 ## Git Flow
 
@@ -140,6 +145,8 @@ SOA(Service Oriented Architecture)의 경량화 버전으로 Monolithic Architec
 - **release branch**
     - **내부적으로 배포할 준비**가 되었다고 생각하는 소스가 저장되는 브랜치
 
+---
+
 ## Tunneling
 
 ### 개념
@@ -166,10 +173,14 @@ SOA(Service Oriented Architecture)의 경량화 버전으로 Monolithic Architec
 
 내부 네트워크에서만 사용되는 Passenger 프로토콜을 Carrier 프로토콜의 데이터 안으로 집어넣은 뒤 Transport 프로토콜을 통해 목적지로 이동시킨다. 그리고 목적지에 도착하면 디캡슐화해 Carrier 프로토콜 안에 들어있던 Passenger 을 동작시켜서 원하는 목적지로 이동한다.
 
+---
+
 ## DocumentDB
 
 - AWS에서 제공하는 NoSQL 기반의 데이터베이스 서비스이다.
 - MongoDB와 기능적으로 큰 차이가 없다.
+
+---
 
 ## homebrew-cask
 
