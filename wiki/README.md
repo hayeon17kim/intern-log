@@ -1,7 +1,7 @@
 # 📖 인턴위키
 
-- [MSA(Micro Service Architecure)](#msa-micro-service-architecure-)
-- [SRE (Site Reliability Engineering)](#sre--site-reliability-engineering-)
+- [MSA](#msa)
+- [SRE](#sre)
 - [Jenkins](#jenkins)
 - [Git Flow](#git-flow)
 - [Tunneling](#tunneling)
@@ -9,9 +9,10 @@
 - [homebrew-cask](#homebrew-cask)
 
 
-## MSA(Micro Service Architecure)
+## MSA
 
 ### 개념
+Micro Service Architecure
 
 SOA(Service Oriented Architecture)의 경량화 버전으로 Monolithic Architecture를 쪼개서 독립적으로 구분한다. 
 
@@ -56,7 +57,9 @@ SOA(Service Oriented Architecture)의 경량화 버전으로 Monolithic Architec
 
 ---
 
-## SRE (Site Reliability Engineering)
+## SRE
+
+Site Reliability Engineering
 
 > class SRE implements Devops
 
