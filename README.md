@@ -13,3 +13,7 @@
 
 ## 🤔 [QnA](https://github.com/hayeon17kim/intern-log/tree/main/qna/)
 질문과 답변을 정리합니다.
+
+## 🌿 [AWS](https://github.com/hayeon17kim/intern-log/tree/main/aws/)
+
+생활코딩 "아마존 웹 서비스와 컴퓨터 클라우딩"을 듣고 배운 내용을 정리합니다.
