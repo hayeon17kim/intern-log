@@ -64,6 +64,8 @@
 
 **의존성 주입(DI)을 통한 객체 간의 관계 구성**
 
+![y6U2x1suTyGkOjT6hkn1Tw_thumb_16](https://user-images.githubusercontent.com/50407047/111816288-002f7100-8920-11eb-9174-8c90f8ae1683.jpg)
+
 - 의존성(Dependency): 하나의 객체가 다른 객체 없이 제대로 된 역할을 할 수 없다. 
 - 주입(Injection): 외부에서 '밀어 넣는 것'
 - 의존성 주입: 어떤 객체가 필요한 객체를 외부에서 밀어 넣는다.
@@ -144,6 +146,8 @@ public class RootConfig {
 
 ### 2.3. 스프링이 동작하면서 생기는 일 
 
+![eyIk1DeKQIOpyNw3fJt3MA_thumb_a4f2](https://user-images.githubusercontent.com/50407047/111817936-f3ac1800-8921-11eb-864f-49a6763cbb75.jpg)
+
 - 스프링 프레임워크가 시작되면 먼저 스프링이 사용하는 메모리 영역을 만들게 된다. 이를 컨텍스트(Context)라고 한다. 스프링에서는 ApplicationContext라는 이름의 객체가 만들어진다.
 - 스프링은 자신이 객체를 생성하고 관리해야 하는 객체들에 대한 설정이 필요하다. 이에 대한 설정이 root-context.xml이다.
 - root-context.xml 에 설정되어 있는 `context:component-scan` 태그의 내용을 통해서 `com.hayeon.demo` 패키지를 스캔하기 시작한다.
@@ -175,8 +179,6 @@ public class SampleTests {
 - `@ContextConfiguration`: 지정된 클래스나 문자열을 이용해서 필요한 객체들을 스프링  내에 객체로 등록한다.
 - `@Log4j`: Lombok을 이용해 로그를 기록하는 Logger를 변수로 생성한다. 별도의 Logger 객체 선언 없이도 Log4j 라이브러리와 설정이 존재한다면 바로 사용할 수 있다. 
 - `@Test`:JUnit에서 Test 대상을 표시하는 어노테이션
-
-
 
 - 스프링은 관리가 필요한 객체(Bean)를 어노테이션 등을 이용해 객체를 생성하고 관리하는 일종의 "컨테이너"나 "팩토리"의 기능을 가지고 있다. 
 - Lombok은 자동으로 getter/setter 등을 만들어 주는데 스프링은 생성자 주입 혹은 setter 주입을 이용해 동작한다. Lombok을 통해 getter/setter 를 자동으로 생성하고 'onMethod' 속성을 이용해 작성된 setter에 @Autowired 옵션을 붙인다.
@@ -239,9 +241,13 @@ public class SampleHotel {
 
 ### 커넥션 풀
 
+![vwt916BTRQu%muMFxpUmNQ_thumb_a4f3](https://user-images.githubusercontent.com/50407047/111818394-77fe9b00-8922-11eb-96b8-78a106dfdef5.jpg)
+
 일반적으로 여러 명의 사용자를 동시에 처리해야 하는 웹 애플리케이션의 경우 데이터베이스 연결을 이용할 때는 커넥션 풀(Connection Pool)을 이용한다. Java에서는 DataSource라는 인터페이스를 통해 커넥션 풀을 사용한다. DataSource를 통해 매번 데이터베이스와 연결하는 것이 아닌, 미리 연결을 맺어주고 반환하는 구조를 이용하여 성능 향상을 꾀한다. 
 
 ### 4. MyBatis와 스프링 연동
+
+![MysWZSDvTae1gjAUn3hu5Q_thumb_a4f5](https://user-images.githubusercontent.com/50407047/111816095-c3637a00-891f-11eb-9cf5-36a53282af79.jpg)
 
 MyBatis는 SQL 매핑 프레임워크이다. 
 

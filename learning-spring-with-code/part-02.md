@@ -1,10 +1,12 @@
 ## Part 2. 스프링 MVC 설정
 
-- Servlet/JSP 를 이용하는 개발에 비해 간단하고, 빠른 개발이 가능하다
+- Servlet/JSP 를 이용하는 개발에 비해 간단하고, 빠른 개발이 가능하다.
 
 ### 스프링 MVC의 기본 구조
 
 - 스프링 MVC 프로젝트를 구성해서 사용한다는 의미: root-context.xml로 사용하는 일반 Java 영역(흔히 POJO)과 servlet-context.xml로 설정하는 Web 관련 영역을 같이 연동해서 사용하게 된다. 
+
+![Bhqyg4sAQ2KqhCOaO8n7IA_thumb_a4f9](https://user-images.githubusercontent.com/50407047/111818611-b85e1900-8922-11eb-9a21-9a119dbef439.jpg)
 
 - WebApplicationContext라는 존재는 기존의 구조에 MVC 설정을 포함하는 구조로 만들어진다.
 
@@ -59,15 +61,28 @@
 ### 프로젝트의 구동
 
 - web.xml에서 시작된다.
+
 - web.xml의 상단에는 가장 먼저 시작되는 Context Listener가 등록되어 잇다.
+
 - root-context.xml이 처리되면 파일에 있는 Bean 설정들이 동작하게 된다. 
+
 - root-context.xml에 정의된 객체(Bean)들은 스프링 영역 안에 생성되고, 객체들 간의 의존성이 처리된다.
+
+  ![o09awz2SQWmj3xFWf1zYvg_thumb_a4fa](https://user-images.githubusercontent.com/50407047/111818624-bb590980-8922-11eb-9883-60c19771a78f.jpg)
+
 - root-context.xml이 처리된 후에는 스프링 MVC에서 사용하는 DispatcherServlet이라는 서블릿과 관련된 설정이 동작한다.
+
 - DispatcherSerlvet 클래스는 스프링 MVC 구조에서 가장 핵심적인 역할을 한다. 내부적으로 웹 관련 처리의 준비작업을 진행하는데 이 때 사용하는 파일이 servlet-context.xml  이다. DispatcherServlet은 XmlWebApplicationContext를 이용해서 servlet-context.xml을 로딩하고 해석한다. 이 과정에서 등록된 객체들은 기존에 만들어진 객체들과 같이 연동된다.
+
+  ![BN4ZCsz7RgyEKXy2+ek%zg_thumb_a4fb](https://user-images.githubusercontent.com/50407047/111818638-beec9080-8922-11eb-9973-48d09b927be3.jpg)
+
+  
 
 
 
 ### 스프링 MVC의 기본 사상
+
+![MFZQa+S2TG6pIF+%Zx2oyA_thumb_a4f7](https://user-images.githubusercontent.com/50407047/111818649-c1e78100-8922-11eb-9e77-9696f14f383a.jpg)
 
 - Servlet/JSP에서는 HttpServletRequest/HttpServletResponse라는 타입의 객체를 이용해 브라우저에서 전송한 정보를 처리한다.
 - 스프링 MVC의 경우 이 위에 하나의 계층을 더한 형태가 된다. 
@@ -79,12 +94,16 @@
 
 **모델2**
 
+![Vne+q9+xQnKAd3o5Lz7kSw_thumb_a4fc](https://user-images.githubusercontent.com/50407047/111818663-c6139e80-8922-11eb-8723-cc4cf706dbaf.jpg)
+
 - 모델2 방식은 로직과 화면을 분리하는 스타일의 개발방식이다. 
 - Request는 먼저 Controller를 호출한다. 나중에 View를 교체하더라도 사용자가 호출하는 URL 자체에 변화가 없게 만들어주기 때문이다.
 - 컨트롤러는 데이터를 처리하는 존재를 이용해서 데이터(Model)을 처리하고 Response할 때 필요한 데이터(Model)를 View 쪽으로 전달한다. 
 - Servlet을 이용하는 경우 개발자들은 Servlet API의 RequestDispatcher 등을 이용해서 이를 직접 처리해왔지만 스프링 MVC는 내부에서 이러한 처리를 하고, 개발자들은 스프링 MVC의 API를 이용해서 코드를 작성하게 된다. 
 
 **스프링 MVC의 기본 구조**
+
+![zz0Gn6wLSnKmxwJCv0R2Hw_thumb_a4f6](https://user-images.githubusercontent.com/50407047/111818673-c875f880-8922-11eb-9821-c1609944f418.jpg)
 
 - 사용자의 Request는 Front-Controller인 DispatcherServlet을 통해 처리한다.
 - HandlerMapping은 Request의 처리를 담당하는 컨트롤러를 찾기 위해서 존재한다. HandlerMapping을 구현한 여러 객체 중 RequestMappingHandlerMapping의 경우 개발자가 @RequestMapping 이 적용된 것을 기준으로 판단한다. 적절한 컨트롤러가 찾아졌다면 HandlerAdpator 를 이용해 해당 컨트롤러를 동작시킨다.
@@ -257,3 +276,153 @@ public String home(Model model) {
 - 전달될 때에는 클래스명의 앞글자는 소문자로 처리된다. 
 - 반면 **기본 자료형의 경우 파라미터로 선언하더라도 기본적으로 화면까지 전달되지 않는다.** 
 - @ModelAttribute는 강제로 전달받은 파라미터를 Model에 담아서 전달하도록 할 때 필요한 어노테이션이다. 
+- @ModelAttribute가 걸린 파라미터는 타입에 관계없이 무조건 Model에 담아서 전달되므로, 파라미터로 전달된 데이터를 다시 화면에서 사용해야 하는 경우에 사용한다.
+
+```java
+@GetMapping("/ex04")
+public String ex04(SampleDTO dto, @ModelAttribute("page") int page) {
+  log.info("dto: " + dto);
+  log.info("page: " + page);
+  return "/sample/ex04";
+}
+```
+
+**RedirectAttributes**
+
+RedirectAttributes는 일회성으로 데이터를 전달하는 용도로 사용한다. 기존에 Servlet에서는 response.sendRedirect()를 사용할 때와 동일한 용도로 사용된다.
+
+```java
+response.sendRedirect("/home?name=aaa&age=10")
+```
+
+스프링 MVC를 이용하는 경우
+
+```java
+rttr.addFlashAttribute("name", "AAA");
+rttr.addFlashAttribute("age", 10);
+return "redirect:/";
+```
+
+### Controller의 리턴 타입
+
+스프링 MVC로 바뀌면서 가장 큰 변화 중 하나는 리턴 타입이 자유로워졌다는 것이다.
+
+**Controller의 메서드가 사용할 수 있는 리턴 타입**
+
+- String
+
+  - jsp를 이용하는 경우 jsp 파일의 경로와 파일 이름을 나타내기 위해서 사용한다.
+  - 특히 상황에 따라 다른 화면을 보여줄 필요가 있을 때 많이 사용한다. (if  else 같은 처리가 필요할 때)
+  - redirect(리다이렉트 방식으로 처리), forward(포워드 방식으로 처리)와 같은 특별한 키워드를 붙여 사용할 수 있다.
+
+- void
+
+  - 호출하는 URL과 동일한 이름의 jsp를 의미한다.
+
+- VO, DTO 타입
+
+  - 주로 JSON 타입의 데이터를 만들어서 반환하는 용도로 사용한다.
+  - 이를 위해서는 jackson-databind 라이브러리를 사용한다. 만일 이 라이브러리가 포함되지 않으면 "500: no converter found" 에러 화면이 나온다. 
+
+- ResponseEntity 타입
+
+  ```java
+  @GetMapping("/ex07")
+  public ResponseEntity<String> ex07() {
+    log.info("/ex07.......");
+    
+    String msg = "{\"name\": \"홍길동\"}";
+    
+    HttpHeaders headers = new HttpHeaders();
+    header.add("Content-Type", "application/json;charset=UTF-8");
+    
+    return new ResponseEntity<>(msg, header, HttpStatus.OK);
+  }
+  ```
+
+  - HTTP 프로토콜의 헤더를 다루는 경우 사용한다.
+  - HttpServletRequest나 HttpServletResponse를 직접 핸들링하지 않아도 ResponseEntity를 통해 원하는 헤더 정보나 데이터를 전달할 수 있다. 
+  - ResponseEntity는 HttpHeaders 객체를 같이 전달할 수 있고, 이를 통해서 원하는 HTTP 헤더 메시지를 가공하는 것이 가능하다.
+
+- Model, ModelAndView: Model로 데이터를 반환하거나 화면까지 같이 지정하는 경우에 사용한다. (많이 사용하지는 않는 편)
+
+- HttpHeaders: 응답에 내용 없이 Http 헤더 메시지만 전달하는 용도로 사용한다. 
+
+### Controller의 Exception 처리
+
+- @ExceptionHandler와 @ControllerAdvice를 이용한 처리
+- @ResponseEntity를 이용한 예외 메시지 구성
+
+**@ControllerAdvice**
+
+- AOP를 이용하는 방식이다. AOP는 핵심적인 로직은 아니지만 프로그램에서 필요한 공통적인 관심사(cross-concern)을 분리하자는 개념이다.
+- 메서드의 모든 예외사항을 전부 핸들링해야 한다면 중복적이고 많은 양의 코드를 작성해야 하지만, AOP 방식을 이용하면 공통적인 예외사항에 대해서는 별도로 @ControllerAdvice를 이용해서 분리하는 방식이다.
+
+```java
+package org.zerock.exception;
+
+@ControllerAdvice
+@Log4j
+public class CommonExceptionAdvice {
+  @ExceptionHandler(Exception.class)
+  public String except(Exception ex, Model model) {
+    log.error("Exception......." + ex.getMessage());
+    model.addAttribute("exception", ex);
+    log.error(model);
+    return "error_page";
+  }
+}
+```
+
+- @ControllerAdvice: 해당 객체가 스프링의 컨트롤러에서 발생하는 예외를 처리하는 존재임을 명시하는 용도
+- @ExceptionHandler: 해당 메서드가 () 들어가는 예외타입을 처리한다는 것을 의미한다. 이 속성의 자리에는  Exception 클래스 타입을 지정할 수 있다. 여기서는 Exception.classs 를 지정하였으므로 모든 예외에 대한 처리가 except()만을 이용해서 처리할 수 있다.
+- 여기서 org.zerock.exception 패키지는 servlet-context.xml에서 인식하지 않기 때문에 `<component-scan>`을 이용해서 해당 패키지의 내용을 조사하도록 해야 한다.
+
+**404 에러 페이지**
+
+- WAS의 구동 중 가장 흔한 HTTP 상태 코드는 404와 505에러이다.
+- 505: Internal Server Error: @ExceptionHandler를 이용해서 처리된다.
+- 404: 잘못된 URL을 호출할 때 보이는 메시지
+
+스프링 MVC의 모든 요청은 DispatcherServlet을 이용해서 처리되므로 404 에러도 같이 처리할 수 있도록 webConfg을 수정한다.
+
+```java
+public class WebConfig extends AbstractAnnotationConfigDispatcherServletInitializer {
+  @Override
+  protected Class<?>[] getRootConfigClasses() {
+    return new Class[] {RootConfig.class};
+  }
+  @Override
+  protected Class<?>[] getServletConfigClasses() {
+    return new Class[] {ServletConfig.class};
+  }
+  @Override
+  protected String[] getServletMappings() {
+    return new String[] {"/"};
+  }
+  @Override
+  protected void customizeRegistration(ServletRegistration.Dynamicregistration) {
+    registration.setInitParameter("throwExceptionIfNoHandlerFound", true);
+  }
+}
+```
+
+org.zerock.exception.CommonExceptionAdvice에는 다음과 같이 메서드를 추가한다.
+
+```java
+@ExceptionHandler(NoHandlerFoundException.class)
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public String handle404(NoHandlerFoundException ex) {
+  return "custom404";
+}
+```
+
+custom.jsp
+
+```jsp
+<body>
+  <h1>
+    해당 URL은 존재하지 않습니다.
+  </h1>
+</body>
+```
