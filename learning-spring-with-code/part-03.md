@@ -1143,7 +1143,7 @@ if (realEnd < this.endPage) {
 
 **이전(prev)과 다음(next)**
 
-이전은 시작 번호가 1보다 큰 경우라면 존재하지 않는다.
+이전은 시작 번호가 1보다 큰 경우에만 존재한다.
 
 ```java
 this.prev = this.startPage > 1;
@@ -1155,5 +1155,131 @@ this.prev = this.startPage > 1;
 this.next = this.endPage < realEnd;
 ```
 
+#### 페이징 처리를 위한 클래스 설계
 
+```java
+package org.zerock.domain;
 
+@Getter
+@Setter
+public class PageDTO {
+  private int startPage;
+  private int endPage;
+  private boolean prev, next;
+  
+  private int total;
+  private Criteria cri;
+  
+  public PageDTO(Criteria cri, int total) {
+    this.cri = cri;
+    this.total = total;
+    
+    this.endPage = (int) (Math.ceil(cri.getPageNum() / 10.0) * 10);
+    this.startPage = endPage - 9;
+    
+    int realEnd = (int) (Math.ceil((total * 1.0) / cri.getAmount()));
+    
+    if (realEnd < this.endPage) {
+      this.endPage = realEnd;
+    }
+    
+    this.prev = this.startPage > 1;
+    this.next = this.endPage < realEnd;
+  }
+  
+}
+```
+
+실제 페이지를 클릭하면 동작을 하는 부분은 별도의 form 태그를 이용해서 처리한다.
+
+list.jsp
+
+```jsp
+<form id='actionForm' action="/board/list" method='get'>
+  <input type='hidden' name='pageNum' value='${pageMaker.cri.pageNum}'>
+  <input type='hidden' name='amount' value='${pageMaker.cri.amount}'>
+</form>
+```
+
+BoardController에서는 PageDTO를 사용할 수 있도록 Model에 담아서 화면에 전달해 줄 필요가 있다.
+
+```java
+@GetMapping("/list")
+public void list(Criteria cri, Model model) {
+  log.info("list: " + cri);
+  model.addAttribute("list", service.getList(cri));
+  // 전체 데이터 수가 필요한데 아직 처리가 이루어지지 않았으므로 임의의 값으로 123을 지정한다.
+  model.addAttribute("pageMaker", new PageDTO(cri, 123));
+}
+```
+
+#### JSP에서 페이지 번호 출력
+
+```jsp
+<div class='pull-right'>
+  <ul class="pagination">
+    <c:if test="${pageMaker.prev}">
+      <li class="paginate_button previous"><a href="#">Previous</a></li>
+    </c:if>
+    
+    <c:forEach var="num" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+      <li class="paginate_button"><a href="#">${num}</a></li>
+    </c:forEach>
+    
+    <c:if test="${pageMaker.next}">
+      <li class="paginate_button next"><a href="#">Next</a></li>
+    </c:if>
+  </ul>
+</div>
+```
+
+a 태그의 href 속성을 이용해 페이지 번호를 클릭했을 대의 이벤트 처리를 할 수도 있지만, 직접 링크를 처리하는 방식의 경우 검색 조건이 붙고 난 후에 처리가 복잡하게 된다. 따라서 자바스크립트로 처리한다.
+
+기존에 동작하던 JavaScript 부분은 아래와 같이 기존의 코드에 페이지 번호를 클릭하면 처리하는 부분이 추가된다.
+
+```javascript
+$(document).ready(function() {
+  var result = '<c:out value="${result}"/>';
+  
+  checkModal(result);
+  
+  history.replaceState({}, null, null);
+  
+  function checkModal(result) {
+    
+    if (result === '' || history.state) {
+      return;
+    }
+    
+    if (parseInt(result) > 0) {
+      $(".modal-body").html(
+      "게시글 "+ parseInt(result) + " 번이 등록되었습니다.");
+    }
+    
+    $("#mymodal").modal("show");
+  } 
+  
+  $("#regBtn").on("click", function() {
+    self.location = "/board/register";
+  });
+  
+  var actionForm = $("#actionForm");
+  
+  $(".paginate_button a").on("click", function(e) {
+    e.preventDefault();
+    
+    console.log('click');
+    
+    actionForm.find("input[name='pageNum']").val($(this).attr("href"));
+    actionForm.submit(); // action폼 자체를 submit 시킨다.
+  });
+});
+```
+
+#### 조회 페이지로 이동
+
+사용자가 3페이지에 있는 게시글을 클릭한 후 다시 목록으로 이동해 보면 무조건 1페이지 목록 페이지로 이동하는 증상이 있다. 이를 해결하기 위해서는 조회 페이지로 갈 때 현재 목록 페이지의 pageNum과 amount를 같이 전달해야 한다. 이런 경우 페이지 이동에 사용했던  `<from>` 태그에 추가로 게시물의 번호를 같이 전송하고, action 값을 조정해서 처리할 수 잇다. 
+
+a 태그로 복잡한 링크를 생성하는 방식이 나쁘다고는 말할 수 없다. 검색엔진에서는 출력된 정보와 링크를 저장해서 사용하기 때문에 a 태그 내의 링크가 완전한 URL인 경우가 노출에 유리하다. 
+
+직접 링크로 연결된 경로를 페이지 이동과 마찬가지로 `<form>`태그를 이욯새ㅓ 처리할 것이므로 `ß
