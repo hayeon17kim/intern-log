@@ -3,7 +3,7 @@
 - 웹 프로젝트는 3 tier 방식으로 구성한다.
 - Presentation Tier: 화면에 보여주는 기술을 사용하는 영역이다. 프로젝트 성격에 맞춰 앱으로 제작하거나, CS로 구성되는 경우도 있다. Servlet/JSP나 스프링 MVC가 담당하는 영역이다.
 - Business Tier: 순수한 비즈니스 로직을 담고 있는 영역이다. 고객이 원하는 요구사항을 반영하는 계층이기 때문에 중요하다. 영역의 설계는 고객의 요구 사항과 일치해야 한다. 메서드의 이름은 고객들이 사용하는 용어를 그대로 사용한다.
--  Persistance Tier: 데이터를 어떤 방식으로 보관하고, 사용하는가에 대한 설계가 들어간다. 
+- Persistance Tier: 데이터를 어떤 방식으로 보관하고, 사용하는가에 대한 설계가 들어간다. 
 - 각 영역은 별도의 설정을 가지는 단위로 볼 수 있다.
 - 스프링 Core 영역은 흔히 POJO의 영역이다. 스프링의 의존성 주입을 이용해서 객체 간의 연관구조를 완성해서 사용한다. 
 
@@ -825,5 +825,335 @@ select * from tbl_board order by bno desc;
 - 인덱스는 색인이다. 색인을 이용하면 사용자들은 책 전체를 살펴볼 필요 없이 색인을 통해 자신이 원하는 내용이 책의 어디에 있는지 알 수 있다.
 - 데이터베이스의 테이블을 하나의 책이라고 생각하고 어떻게 데이터를 찾거나 정렬하는지 생각해보자. 색인은 사람들이 쉽게 찾아볼 수 있게 알파벳 순서나 한글 순서로 정렬한다. 이를 통해서 원하는 내용을 위에서부터 혹은 반대로 찾아나간다. 이를 스캔이라고 한다.
 - 데이터베이스에 테이블을 만들 때 PK를 부여하면 인덱스라는 것이 만들어진다. 데이터베이스를 만들 때 PK를 지정하는 이유는 '식별'이라는 의미가 있지만, **구조상으로는 '인덱스'라는 존재(객체)가 만들어지는 것을 의미한다.**
-- 
+
+![oJc3IKRtRxG2ssTeUua0+A_thumb_a510](https://user-images.githubusercontent.com/50407047/111936818-d20d8500-8b09-11eb-9cee-7537c578e44d.jpg)
+
+- 테이블은 마치 책장에 책을 막 넣은 것처럼 중간에 순서가 섞여 있는 경우가 대부분이다. 
+- 인덱스와 실제 테이블을 연결하는 고리는 ROWID라는 존재이다. ROWID는 데이터베이스 내의 주소에 해당하는데 모든 데이터는 자신만의 주소를 가지고 있다. 
+- 'where bno=100'같은 조건을 주었을 때 데이터베이스의 입장에서는 tbl_board 라는 책에서 bno 값이 100인 데이터를 찾아야 한다. 만일 책이 얇아서 내용이 많지 않다면 전체를 살펴보는 것이 더 빠를 것이다. 이를 FULL SCAN이라고 표현한다. 하지만 내용이 많고, 색인이 존재한다면 색인을 찾고 색인에서 주소를 찾아서 접근하는 방식을 이용할 것이다.  
+
+#### 인덱스를 이용하는 정렬
+
+- 인덱스는 '정렬이 되어 있다.' 
+- 따라서 데이터를 찾아내 이들을 SORT하는 과정을 생랽할 수 있다.
+- 데이터의 양이 많고 정렬이 필요한 상황이라면 우선적으로 인덱스를 작성하는 것을 생각해봐야 한다.
+
+**인덱스와 오라클 힌트(hint)**
+
+- 오라클은 select 문을 전달할 때 힌트를 사용한다. 
+- 힌트는 데이터베이스에 '지금 내가 전달한 select문을 이렇게 실행해주면 좋겠다'라는 힌트이다. 
+- 힌트 구문에서 에러가 나도 SQL 실행에 지장을 주지 않는다. 
+- 따라서 힌트를 이용한 select 문을 작성한 후에는 실행 계획을 통해 개발자가 원하는 대로 SQL문이 실행되는지를 확인해야 한다. 
+
+```sql
+select * from btl_board order by bno desc;
+
+select /*+INDEX_DESC (tbl_board pk_board) */*
+from tbl_board;
+```
+
+- 위의 두 쿼리문은 동일한 결과를 보여준다.
+- 두 번째 select문은 order by 조건이 없어도 동일한 결과가 나왔다. select문에서 `tbl_board` 테이블에 `pk_board` 인덱스를 역순으로 이용해줄 것이라는 힌트를 부여했기 때문이다. 실행 계획에서 이를 활용고 있다.
+
+**힌트 사용 문법**
+
+힌트는 잘못 작성되어도 실행할 때는 무시되기만 하고 별도의 에러는 발생하지 않는다.
+
+```sql
+SELECT 
+/* Hint name (param...) */ column name, ...
+FROM
+  table name
+```
+
+- `FULL` 힌트
+
+  ```sql
+  select /* + FULL(tbl_board) */ * from tbl_board order by bno desc;
+  ```
+
+  `TBL_BOARD` 를 FULL로 접근하고 다시 SORT 가 적용된다. 
+
+- `INDEX_ASC`, `INDEX_DESC` 힌트
+
+  인덱스를 순서대로 이용할 것인지 역순으로 이용할 것인지를 지정한다. 주로 `order by` 를 위해서 사용한다. 인덱스 자체가 정렬을 해준 상태이므로 이를 통해서 SORT 과정을 생략하기 위한 용도이다.
+
+  ```sql
+  select /* INDEX_ASC(tbl_board pk_board) */ * from tbl_board where bno > 0;
+  ```
+
+  이 힌트를 이요할 때는 동일한 조건의 order by 구문을 작성하지 않아도 된다. 
+
+#### ROWNUM과 인라인뷰
+
+- 전체가 아닌 필요한 만큼의 데이터를 가져오는 방식
+- 데이터베이스는 페이지 처리를 위해서 ROWNUM이라는 특별한 키워드를 사용해서 데이터에 순번을 붙여 사용한다.
+- ROWNUM은 SQL이 실행된 결과에 넘버링을 해준다. 모든 SELECT 문에는 ROWNUM이라는 변수를 이용해서 해당 데이터가 몇 번째로 나오는지 알아낼 수 있다. 
+- ROWNUM은 실제 데이터가 아니라 테이블에서 데이터를 추출한 후에 처리되는 변수이므로 상황에 따라서 그 값이 매번 달라질 수 있다. 
+- ROWNUM은 테이블에는 존재하지 않고, 테이블에서 가져온 데이터를 이용해서 번호를 매기는 방식이다. 
+- 이때 번호는 데이터는 현재 데이터베이스의 상황에 따라서 저장된 데이터를 로딩하는 것이므로 실습 환경에 따라 다른 값이 나온다.
+- ROWNUM이라는 것은 데이터를 가져올 때 적용되는 것이고, **이후에 정렬되는 과정에서는 ROWNUM이 변경되지 않는다.** 즉 정렬은 나중에 처리된다.
+
+**인덱스를 이용한 접근 시 ROWNUM**
+
+만일 `PK_BOARD` 인덱스를 통해서 접근한다면 다음과 같은 과정으로 접근한다.
+
+- `PK_BOARD` 인덱슬르 통해서 테이블에 접근
+- 접근한 데이터에 ROWNUM 부여
+
+**페이지 번호 1, 2의 데이터**
+
+페이지 1
+
+```sql
+select /*+INDEX_DESC(tbl_board pk_board) */
+	rownum rn, bno, title, content
+from
+	tbl_board
+where rownum <= 10;
+```
+
+- 가장 높은 번호의 게시물 10개만이 출력된다. 
+- 이때 `PK_BOARD` 인덱스를 역순으로 접근한다. 
+- `WHERE` 조건에서 특이하게 ROWNUM 조건은 테이블을 접근할 때 필터링 조건으로 적용된다.
+
+페이지 2
+
+```sql
+select /*+INDEX_DESC(tbl_board pk_board) */
+	rownum rn, bno, title, content
+from
+	tbl_board
+where rownum > 10 and rownum <= 20;
+```
+
+위의 쿼리문은 아무 결과가 나오지 않는다. 왤까?
+
+실행계획은 우선 ROWNUM > 10 데이터를 찾게 된다. 문제는 `TBL_BOARD` 에  처처음으로 나오는 ROWNUM의 값이 1이라는 것이다. `TBL_BOARD`에서 데이터를 찾고 ROWNUM이 1이 된 데이터는 where 조건에 의해 무효화된다. 이후에 다시 다른 데이터를 가져오면 새로운 데이터가 첫 번째 데이터가 되므로 다시 ROWNUM은 1이 된다. 이 과정이 반복되면 ROWNUM 값은 항상 1로 만들어지고 없어지는 과정이 반복되므로 테이블의 모든 데이터를 찾아내지만 결과는 아무것도 나오지 않게 된다. 이러한 이유로 SQL을 작성할 때 ROWNUM 조건은 반드시 1이 포함되어야 한다.
+
+'...WHERE ROWNUM=10'을 요구한다면 이 조건을 만족하는 ROW는 결코 추출될 수 없다. 원래의 조건을 모두 만족하여 ROWNUM이 1이 될 수 있었다 하더라도 조건에 있는 ROWNUM=10에 의해 무시되어서 ROWNUM은 아직 '1이 되지도 못'했다. 그러므로 ROWNUM이 1이 되지 않고서는 영원히 ROWNUM은 10이 될 수 없으므로 이러한 조건을 만족하는 ROW는 결코 찾을 수 없다. 
+
+SQL에 ROWNUM 조건이 1을 포함하도록 다음과 같이 수정해보면 결과가 나온다.
+
+```sql
+select /*+INDEX_DESC(tbl_board pk_board) */
+	rownum rn, bno, title, content
+from
+	tbl_board
+where rownum <= 20;
+```
+
+이러면 역순으로 데이터를 20개 가져온다.
+
+**인라인뷰(in-line view) 처리**
+
+- 인라인뷰: 'SELECT문 안쪽 FROM에 다시 SELECT문'
+- 논리적으로는 어떤 결과를 구하는 SELECT문이 있고, 그 결과를 다시 대상으로 삼아서 SELECT를 하는 것이다.
+- 뷰(View): 일종의 창문 같은 개념으로 복잡한 SELECT 처리를 하나의 뷰로 생성하고, 사용자들은 뷰를 통해서 복잡하게 만들어진 결과를 마치 하나의 테이블처럼 쉽게 조회한다는 개념이다.
+- 인라인뷰는 이러한 뷰의 작성을 별도로 작성하지 않고 말 그대로 FROM 구문 안에 작성하는 형태이다. 
+
+```sql
+SELECT ...
+FROM (
+  SELECT ... /*인라인 뷰*/
+  FROM ...
+)
+```
+
+20개의 데이터를 가져오는 SQL을 하나의 테이블처럼 간주하고 바깥쪽에서 추가적인 처리를 하도록 만들어주자.
+
+```sql
+select
+	bno, title, content
+from
+	(
+    select /*+INDEX_DESC(tbl_board pk_board) */
+    	rownum rn, bno, title, content
+    from
+    	tbl_board
+    where rownum <= 20
+  )
+ where rn > 10;
+```
+
+이 과정을 정리하면 다음과 같다.
+
+- 필요한 순서로 정렬된 데이터에 ROWNUM을 붙인다.
+- 처음부터 해당 페이지의 데이터를 'ROWNUM <= 30'과 같은 조건을 이용해서 구한다.
+- 구해놓은 데이터를 하나의 테이블처럼 간주하고 인라인뷰로 처리한다.
+- 인라인뷰에서 필요한 데이터만을 남긴다. 
+
+### MyBatis와 스프링에서 페이징 처리
+
+MyBatis는 SQL을 그대로 사용할 수 있기 때문에 인라인뷰를 이용하는 SQL을 작성하고, 필요한 파라미터를 지정하는 방식으로 페이징 처리를 한다. 페이징 처리를 위해서는 SQL을 실행할 때는 다음과 같은 파라미터가 필요하다.
+
+- 페이지 번호(pageNum)
+- 한 페이지 당 몇 개의 데이터(amount)를 보여줄 것인가
+
+이 데이터를 하나의 객체로 묶어서 전달하는 방식이 확장성이 좋다.
+
+```java
+package org.zerock.domain;
+
+@Getter
+@Setter
+@ToString
+public class Criteria {
+  
+  private int pageNum;
+  private int amount;
+  
+  public Criteria() {
+    this(1, 10);
+  }
+  
+  public Criteria(int pageNum, int amount) {
+    this.pageNum = pageNum;
+    this.amount = amount;
+  }
+}
+```
+
+Criteria 클래스의 용도는 pageNum과 amount 값을 같이 전달하는 용도이지만 생성자를 통해서 기본값을 1페이지, 10개로 지정해서 처리한다.
+
+#### MyBatis 처리와 테스트
+
+```java
+package org.zerock.mapper;
+
+public interface BoardMapper {
+  public List<BoardVO> getList();
+  public List<BoardVO> getListWithPaging(Criteria cri);
+  //..
+}
+```
+
+`src/main/resources`
+
+```xml
+<select id ="getListWithPaging" resultType="org.zerock.domain.BoardVO">
+  <![CDATA[
+	select
+		bno, title, content, writer, regdate, updatedate
+	from
+		(
+		select /*+INDEX_DESC(tbl_board pk_board) */
+			rownum rn, bno, title, content, writer, regdate, updatedate
+		from
+			tbl_board
+		where rownum <= #{pageNum} * #{amount}
+		)
+	where rn > (#{pageNum} - 1) * #{amount}
+]]>
+</select>
+```
+
+인라인뷰에서는 BoardVO를 구성하는 데 필요한 모든 칼럼과 ROWNUM을 RN이라는 가명을 이용해서 만들어 주고 바깥쪽 SQL에서는 RN 칼럼을 조건으로 처리한다.
+
+**페이징 테스트와 수정**
+
+```java
+@Test
+public void testPaging() {
+  Criteria cri = new Criteria();
+  cri.setPageNum(3);
+  cri.setAmount(10);
+  List<BoardVO> list = mapper.getListWith(cri);
+  list.forEach(board -> log.info(board));
+}
+```
+
+BoardService
+
+```java
+public List<BoardVO> getList(Criteria cri);
+```
+
+BoardController
+
+```java
+@GetMapping("/list")
+public void list(Criteria cri, Model model) {
+  log.info("list: " + cri);
+  model.addAttribute("list", service.getList(cri));
+}
+```
+
+BoardControllerTests
+
+```java
+@Test
+public void testListPaging() throws Exception {
+  log.info(mockMvc.perform(
+  MockMvcRequestBuilders.get("/board/list")
+  .param("pageNum", "2")
+  .param("amount", "50"))
+           .getReturn().getModelAndView().getModelMap());
+}
+```
+
+### 페이징 화면 처리 
+
+- 브라우저 주소창에서 페이지 번호를 전달해서 결과를 확인하는 단계
+- JSP에서 페이지 번호를 출력하는 단계
+- 각 페이지 번호에 클릭 이벤트 처리
+- 전체 데이터 개수를 반영해서 페이지 번호 조절
+
+페이지 처리는 단순히 링크의 연결이기 때문에 어렵지는 않지만, **목록 페이지에서 조회 페이지, 수정 삭제 페이지까지 페이지 번호가 계속해서 유지되어야만 하기 때문에** 끝까지 신경써야 하는 부분이 많다.
+
+#### 페이징 처리할 때 필요한 정보들
+
+- 현재 페이지 번호(page)
+- 이전과 다음으로 이동 가능한 링크의 표시 여부 (prev, next)
+-  화면에서 보여지는 페이지의 시작 번호와 끝 번호(startPage, endPage)
+
+**끝 페이지 번호와 시작 페이지 번호**
+
+페이징 처리를 할 때 우선적으로 필요한 정보는 현재 페이지 정보이다. 사용자가 5페이지를 본다고 하면 화면의 페이지 번호는 1부터 시작하지만, 19페이지를 본다고 하면 11부터 시작해야 하기 때문이다.
+
+페이지를 계산할 때는 끝 번호를 먼저 계산하는 것이 수월하다.
+
+```java
+this.endPage = (int)(Math.ceil(페이지번호 / 10.0)) * 10;
+```
+
+- 1페이지의 경우:  Math.ceil(0.1) * 10 = 10
+- 10페이지의 경우: Math.ceil(1) * 10 = 10
+- 11페이지의 경우: Math.ceil(1.1) * 10 = 20
+
+끝 번호를 먼저 계산하는 이유는 시작 번호를 계산하기 수월하기 때문이다. 만일 화면에 10개씩 보여준다면 시작 번호는 무조건 끝 번호에서 9를 뺀 값이 된다.
+
+```java
+this.startPage = this.endPage - 9;
+```
+
+끝 번호는 전체 데이터 수(total)에 영향을 받는다. 예를 들어, 10개씩 보여주는 경우 전체 데이터 수(total)가 80개라고 가정한다면 끝 번호는(endPage)는 10이 아닌 8이 되어야 한다.
+
+만일 끝 번호(endPage)와 한 페이지당 출력되는 데이터 수 (amount)의 곱이 전체 데이터 수(total)보다 크다면 끝 번호(endPage)는 다시 total을 이용해서 계산해야 한다.
+
+```java
+realEnd = (int) (Math.ceil((total * 1.0) / amount) );
+
+if (realEnd < this.endPage) {
+  this.endPage = realEnd;
+}
+```
+
+먼저 전체 데이터 수(total)을 이용해서 진짜 끝 페이지(realEnd)가 몇 번까지 되는지를 계산한다. 만일 진짜 끝 페이지(realEnd)가 구해둔 끝 번호(endPage)보다 작다면 끝 번호는 작은 값이 되어야 한다. 
+
+**이전(prev)과 다음(next)**
+
+이전은 시작 번호가 1보다 큰 경우라면 존재하지 않는다.
+
+```java
+this.prev = this.startPage > 1;
+```
+
+다음으로 가는 링크의 경우 realEnd가 끝 번호(endPage)보다 큰 경우에만 존재한다.
+
+```java
+this.next = this.endPage < realEnd;
+```
+
+
 
