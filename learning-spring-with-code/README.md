@@ -5,4 +5,5 @@
 - [Part 1. 스프링 개발 환경 구축](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-01.md)
 - [Part 2. 스프링 MVC의 Controller](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-02.md)
 - [Part 3. 기본적인 웹 게시물 관리](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-03.md)
+- [Part 4. REST 방식과 Ajax를 이용하는 댓글 처리](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-04.md)
 

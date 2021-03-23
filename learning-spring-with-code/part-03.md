@@ -1282,4 +1282,687 @@ $(document).ready(function() {
 
 a 태그로 복잡한 링크를 생성하는 방식이 나쁘다고는 말할 수 없다. 검색엔진에서는 출력된 정보와 링크를 저장해서 사용하기 때문에 a 태그 내의 링크가 완전한 URL인 경우가 노출에 유리하다. 
 
-직접 링크로 연결된 경로를 페이지 이동과 마찬가지로 `<form>`태그를 이욯새ㅓ 처리할 것이므로 `ß
+직접 링크로 연결된 경로를 페이지 이동과 마찬가지로 `<form>`태그를 이용해서 처리할 것이므로 a 태그에는 이동하려는 게시물의 번호만을 가지게 수정한다.
+
+```jsp
+<td>
+  <a class='move' href='<c:out value="${board.bno}"/>'>
+  	<c:out value="${board.title}"/></a>
+</td>
+```
+
+JS를 통해서 게시물의 제목을 클릭했을 때 이동하도록 이벤트 처리를 새로 작성한다.
+
+```js
+$(".move").on("click", function(e){
+  e.preventDefault();
+  actionForm.append("<input type='hidden' name='bno' value='" + $(this).attr("href")+"'>");
+  actionForm.attr("action", "/board/get")l;
+  actionForm.submit();
+})
+```
+
+**조회 페이지에서 다시 목록 페이지로 이동 - 페이지 번호 유지**
+
+BoardController에의 get() 메서드는 원래는 게시물의 번호만 받도록 처리되어 있었지만, 추가적인 파라미터가 붙으면서 Criteria를 파라미터로 추가해서 받고 전달한다.
+
+```java
+@GetMapping({"/get", "/modify"})
+public void get(@RequestParam("bno") Long bno, @ModelAttribute("cri") Criteria cri, Model model) {
+  log.info("/get or modify");
+  model.addAttribute("board", service.get(bno));
+}
+```
+
+- **`@ModelAttribute` 는 자동으로 Model 에 데이터를 지정한 이름으로 담아준다.**
+- **`@ModelAttribute`를 사용하지 않아도 Controller에서 화면으로 파라미터가 된 객체는 전달이 되지만**, 좀 더 명시적으로 이름을 지정하기 위해서 사용한다.
+
+```jsp
+<form id='operForm' action="/board/modify" method="get">
+  <input type='hidden' id='bno' name='bno' value='<c:out value="${board.bno}"/>'>
+  <input type='hidden' name='pageNum' value='<c:out value="${cri.pageNum}"/>'>
+  <input type='hidden' name='amount' value='<c:out value="${cri.amount}"/>'>
+</form>
+```
+
+**조회 페이지에서 수정/삭제 페이지로 이동**
+
+BoardController에서는  get() 메서드에서 '/get'과 '/modify'를 같이 처리하므로 별도의 추가적인 처리 없이도 Criteria를 Model에 cri라는 이름으로 담아서 전달한다. 
+
+modify.jsp에서는 `<form>` 태그를 이용해서 데이터를 처리한다. 
+
+```jsp
+<div class="panel-heading">Board Modify Page</div>
+<div class="panel-body">
+  <form role="form" action="/board/modify" method="post">
+    <input type='hidden' name='pageNum' value='<c:out vlaue="${cri.pageNum}"/>'>
+    <input type='hidden' name='amount' value='<c:out vlaue="${cri.amount}"/>'>
+  </form>
+</div>
+```
+
+POST 방식으로 진행하는 수정과 삭제 처리는 BoardController에서 각각의 메서드 형태로 구현되어 있으므로 페이지 관련 파라미터들을 처리하기 위해서는 변경할 필요가 있다.
+
+```java
+@PostMapping("/modify")
+public String modify(BoardVO board, @ModelAttribute("cri") Criteria cri, RedirectAttributes rttr) {
+  log.info("modify: " + board);
+  
+  if (service.modify(board)) {
+    rttr.addFlashAttribute("result", "success");
+  }
+  
+  rttr.addAttribute("pageNum", cri.getPageNum());
+  rttr.addAttribute("amount", cri.getAmount());
+  
+  return "redirect:/board/list";
+}
+```
+
+삭제 처리
+
+```java
+@PostMapping("/remove")
+public String remove(@RequestParam("bno") Long bno, @ModelAttribute("cri") Criteria cri, RedirectAttributes rttr) {
+  log.info("remove: " + board);
+  
+  if (service.remove(board)) {
+    rttr.addFlashAttribute("result", "success");
+  }
+  
+  rttr.addAttribute("pageNum", cri.getPageNum());
+  rttr.addAttribute("amount", cri.getAmount());
+  
+  return "redirect:/board/list";
+}
+```
+
+**수정/삭제 페이지에서 목록 페이지로 이동**
+
+수정/삭제를 취소하고 다시 목록 페이지를 이동할 때 다음과 같이 한다. 목록 페이지는 오직 pageNum과 amount만을 사용하므로 `<form>` 태그의 다른 내용은 삭제하고 필요한 내용만을 다시 추가하는 형태가 편리하다.
+
+```js
+$(document).ready(function(){
+  
+  var formObj = $("form");
+  
+  $('button').on("click", function(e) {
+    
+    e.preventDefault();
+    
+    var operation = $(this).data("oper");
+    
+    console.log(operation);
+    
+    if(operation === 'remove') {
+      formObj.attr("action", "/board/remove");
+    } else if (operation === 'list') {
+      //move to list
+      formObj.attr("action", "/board/list").attr("method", get);
+      var pageNumTag = $("input[name='pageNum']").clone();
+      var amountTag = $("input[name='amount']").clone();
+      
+      formObj.empty();
+      formObj.append(pageNumTag);
+      formObj.append(amountTag);
+    }
+    formObj.submit();
+  });
+});
+```
+
+만일 사용자가 'List' 버튼을 클릭한다면 `<form>` 태그에서 필요한 부분만 잠시 복사(clone)해서 보관해 두고 `<form>` 태그 내의 모든 내용은 지워버린다. 이후에 다시 필요한 태그만 추가해서 '/board/list'를 호출한다.
+
+#### MyBatis에서 전체 데이터의 개수 처리
+
+```java
+public interface BoardMapper {
+  //..
+  public int getTotalCount(Criteria cri);
+}
+```
+
+getTotalCount()는 Criteria를 파라미터로 전달받도록 하지 않아도 문제가 생기지는 않지만, 게시물의 목록과 전체 데이터 수를 구하는 작업은 일관성 있게 Criteria를 받는 것이 좋다. 이는 후에 검색에서 필욯다ㅏ.
+
+```xml
+<select id="getTotalCount" resultType="int">
+  select count(*) from tbl_board where bno > 0
+</select>
+```
+
+BoardService
+
+```java
+@Override
+public int getTotal(Criteria cri) {
+  log.info("get total count");
+  return mapper.getTotalCount();
+}
+```
+
+getTotal()에 굳이 Criteria는 파라미터로 전달될 필요가 없기는 하지만, 목록과 전체 데이터 개수는 항상 같이 동작하는 경우가 많기 때문에 파라미터로 지정한다.
+
+BoardController
+
+```java
+@GetMapping("/list")
+public void list(Criteria cri, Model model) {
+  log.info("list: " + cri);
+  model.addAttribute("list", service.getList(cri));
+  
+  int total = service.getTotal(cri);
+  
+  log.info("total: " + total);
+  
+  model.addAttribute("pageMaker", new PageDTO(cri, total));
+}
+```
+
+### 검색 처리
+
+- 검색 기능은 검색 조건과 키워드로 나누어 생각할 수 있다.
+- 검색 조건은 일반 웹 사이트에서 일반 사용자의 경우 `<select>` 태그를 이용해서 작성하고, 관리자용이나 검색 기능이 강한 경우 `<checkbox>`를 이용하는 경우가 많다.
+
+#### 검색 기능과 SQL
+
+검색 기능은 다음과 같이 나눠진다.
+
+- 제목/내용/작성자와 같이 단일 항목 검색
+- 제목 or  내용, 제목 or 작성자, 내용 or 작성자, 제목 or 내용 or 작성자와 같은 다중 항목 검색
+
+오라클은 페이징 처리에 인라인뷰를 이용하기 때문에 실제로 검색 조건에 대한 처리는 인라인뷰의 내부에서 이뤄져야 한다. 
+
+단일 항목의 검색은 검색 조건에 따라서 칼럼이 달라지고, LIKE 처리를 통해 키워드를 사용한다. 
+
+2페이지에 해당하는 데이터를 '제목'으로 검색하고, 키워드는 'Test'라고 한다면 다음과 같이 작성될 수 있다. 
+
+```sql
+select
+*
+from
+	(
+    select /*+INDEX_DESC(tbl_board pk_board) */
+    	rownum rn, bno, title, content, writer, regdate, updatedate
+    from
+    	tbl_board
+    where
+    -- 변경부분
+    title like '%Test%'
+    
+    and rownum <= 20
+  )
+where rn > 10;
+```
+
+인라인뷰 안쪽에서 필요한 데이터를 가져올 때 검색조건이 적용되어야 하기 때문에 WHERE문 뒤에 검색 조건이 추가되고, ROWNUM 조건이 뒤따르게 하면 문제가 없다. 
+
+**다중 항목 검색**
+
+제목이나 내용 중 'TEST'라는 문자열이 있는 게시물 검색 시 다음과 같이 작성될 것이라고 예상하곤 한다.   
+
+```sql
+select
+*
+from
+	(
+    select /*+ INDEX_DESC(tbl_board pk_board) */
+    	rownum rn, bno, title, content, writer, regdate, updatedate
+    from
+    	tbl_board
+    where
+    	title like '%Test' or content like '%Test%'
+    and rownum <= 20
+  )
+where rn > 10;
+```
+
+- 이 쿼리문을 실제로 동작시켜 보면 10개보다 더 많은 데이터가 검색된다.
+- AND 연산자가 OR 연산자보다 우선순위가 높기 때문이다.
+- ROWNUM이 20보다 작거나 같으면서(AND) 내용에 'Test'라는 문자열이 있거나(OR) 제목에 Test라는 문자열이 있는 게시글을 검색한다. 제목에 TEST라는 문자열이 있는 경우는 많기 때문에 많은 양의 데이터를 가져온다. 따라서 괄호로 묶어준다.
+
+```sql
+select
+*
+from
+	(
+    select /*+ INDEX_DESC(tbl_board pk_board) */
+    	roawnum rn, bno, title, content, writer, regdate, updatedate
+    from
+    	tbl_board
+    where
+    	(title like '%Test' or content like '%Test%')
+    and rownum <= 20
+  )
+where rn > 10;
+```
+
+#### MyBatis의 동적 SQL
+
+검색 조건이 변하면 SQL의 내용 역시 변하기 때문에 XML이나 어노테이션 같이 고정된 문자열을 작성하는 방법으로는 제대로 처리할 수 없다.
+
+MyBatis는 동적(Dynamic) 태그 기능을 통해 SQL을 파라미터들의 조건에 맞게 조정할 수 있는 기능을 제공한다. MyBatis의 동적 태그는 약간의 구문을 이용해서 전달되는 파라미터를 가공해서 경우에 따라 다른 SQL을 만들어서 실행할 수 있다.
+
+**MyBatis의 동적 태그들**
+
+```xml
+select * from tbl_board
+	<trim prefix="where (" suffix=")" prefixOverrides="OR">
+    <forEach item="val" index="key" collection="map">
+      <trim prefix="OR">
+        <if test="type == 'T'.toString()">
+  				(title like '%'||#{keyword}||'%')
+        </if>
+        <if test="type == 'C'.toString()">
+          (content like '%'||#{keyword}||'%')
+        </if>
+        <if test="type == 'W'.toString()">
+          (writer like '%'||#{keyword}||'%')
+        </if>
+      </trim>
+    </forEach>
+	</trim> 
+```
+
+- trim, where, set은 단독으로 사용되지 않고 `<if>`, `<choose>`와 같은 태그들을 내포하여 SQL을 연결해주고, 앞 뒤에 필요한 구문들(AND, OR, WHERE)를 추가하거나 생략하는 역할을 한다.
+- 예를 들어 'where rownum <= 20'은 AND라는 키워드가 필요 없지만, 검색 조건이 추가되면 AND가 필요하다 (WHERE title='Test' AND ROWNUM <= 20). 이처럼 where, trim, set은 필요한 키워드를 붙이거나 빼는 상황에서 사용한다.
+
+#### 검색 조건 처리를 위한 Criteria의 변화
+
+페이징 처리에 사용했던 Criteria의 의도는 단순히 'pageNum'과 'amount'라는 파라미터를 수집하기 위해서였다. 그러나 페이징처리에 검색 조건 처리가 들어가면 Criteria 역시 변화가 필요하다. 검색 조건(type)과 검색에 사용하는 키워드가 필요하므로 Criteria를 확장한다. 확장 방법으로는 상속 방법을 이용하거나 직접 Criteria를 수정할 수 있다. 여기서는 수정하는 방식으로 하겠다. 
+
+```java
+package org.zerock.domain;
+
+@Getter
+@Setter
+@ToString
+public class Criteria {
+  
+  private int pageNum;
+  private int amount;
+  
+  private String type;
+  private String keyword;
+  
+  public Criteria() {
+    this(1, 10);
+  }
+  
+  public Criteria(int pageNum, int amount) {
+    this.pageNum = pageNum;
+    this.amount = amount;
+  }
+  
+  public String[] getTypeArr() {
+    return type == null? new String[] {} : type.split("");
+  }
+}
+```
+
+**BoardMapper.xml에서 Criteria 처리**
+
+```xml
+<select id ="getListWithPaging" resultType="org.zerock.domain.BoardVO">
+  <![CDATA[
+	select
+		bno, title, content, writer, regdate, updatedate
+	from
+		(
+		select /*+INDEX_DESC(tbl_board pk_board) */
+			rownum rn, bno, title, content, writer, regdate, updatedate
+		from
+			tbl_board
+		where 
+	]]>
+  <trim prefix="(" suffix=") AND " prefixOverrides="OR">
+    <foreach item ='type' collection="typeArr">
+      <trim prefix="OR">
+        <choose>
+          <when test="type == 'T'.toString()">
+            title like '%'||#{keyword}||'%'
+          </when>
+          <when test="type == 'C'.toString()">
+            content like '%'||#{keyword}||'%'
+          </when>
+          <when test="type == 'W'.toString()">
+            writer like '%'||#{keyword}||'%'
+          </when>
+        </choose>
+      </trim>
+    </foreach>
+  </trim>
+<![CDATA[
+rownum <= #{pageNum} * #{amount}
+		)
+	where rn > (#{pageNum} - 1) * #{amount}
+]]>
+</select>
+```
+
+MyBatis는 원하는 속성을 찾을 때 getTypeArr()과 같이 이름에 기반을 두어서 검색하기 때문에 Criteria에서 만들어둔 getTypeArr()의 결과인 문자열의 배열이 `<foreach>` 의 대상이 된다. (MyBatis는 엄격하게 Java Beans의 규칙을 따르지 않고, get/set 메서드만을 활용한다.
+
+`<choose>` 안쪽의 동적 SQL은 'OR title... OR content ... OR writer..'와 같은 구문을 만들어낸다. 따라서 바깥쪽에는 `<trim>`을 이용해서 맨 앞에서 생성되는 'OR'을 없애준다. 
+
+```java
+@Test
+public void testSearch() {
+  Criteria cri = new Criteria();
+  cri.setKeyword("새로");
+  cri.setType("TC");
+  List<BaordVO> list = mapper.getListWithPaging(cri);
+  list.forEach(board -> log.info(board));
+}
+```
+
+**`<sql>` `<include>`와 검색 데이터의 개수 처리**
+
+```xml
+<sql id="criteria">
+  <trim prefix="(" suffix=") AND " prefixOverrides="OR">
+    <foreach item ='type' collection="typeArr">
+      <trim prefix="OR">
+        <choose>
+          <when test="type == 'T'.toString()">
+            title like '%'||#{keyword}||'%'
+          </when>
+          <when test="type == 'C'.toString()">
+            content like '%'||#{keyword}||'%'
+          </when>
+          <when test="type == 'W'.toString()">
+            writer like '%'||#{keyword}||'%'
+          </when>
+        </choose>
+      </trim>
+    </foreach>
+  </trim>
+</sql>
+
+<select id ="getListWithPaging" resultType="org.zerock.domain.BoardVO">
+  <![CDATA[
+	select
+		bno, title, content, writer, regdate, updatedate
+	from
+		(
+		select /*+INDEX_DESC(tbl_board pk_board) */
+			rownum rn, bno, title, content, writer, regdate, updatedate
+		from
+			tbl_board
+		where 
+	]]>
+	<include refid="criteria"></include>
+<![CDATA[
+rownum <= #{pageNum} * #{amount}
+		)
+	where rn > (#{pageNum} - 1) * #{amount}
+]]>
+</select>
+
+<select id="getTotalCount" resultType="int">
+  select count(*) from tbl_board
+  where
+  <include refid="criteria"></include>
+  bn > 0
+</select>
+```
+
+#### 화면에서 검색 조건 처리
+
+화면에서 검색은 다음과 같은 사항을 주의해서 개발해야 한다.
+
+- 페이지 번호가 파라미터로 유지되었던 것처럼 검색 조건과 키워드 역시 항상 화면 이동 시 같이 전송되어야 한다.
+- 화면에서 검색 버튼을 클릭하면 새로 검색을 한다는 의미이므로 1페이지로 이동한다.
+- 한글의 경우 GET 방식으로 이동하는 경우 문제가 생길 수 있으므로 주의해야 한다.
+
+```jsp
+<div class='row'>
+  <div class="col-lg-12">
+    <form id='searchForm' action="/board/list" method='get'>
+      <select name='type'>
+        <option value="">--</option>
+        <option value="T">제목</option>
+        <option value="C">내용</option>
+        <option value="W">작성자</option>
+        <option value="TC">제목 or 내용</option>
+        <option value="TW">제목 or 작성자</option>
+        <option value="TCW">제목 or 내용 or 작성자</option>
+      </select>
+      <input type='text' name='keyword'/>
+      <input type='hidden' name='pageNum' value='${pageMaker.cri.pageNum}'>
+      <input type='hidden' name='amount' value='${pageMaker.cri.amount}'>
+      <button class='btn btn-default'>
+        Search
+      </button>
+    </form>
+  </div>
+</div>
+```
+
+여전히 다음과 같은 문제가 남아있다.
+
+- 3페이지를 보다 검색을 하면 3페이지로 이동하는 문제
+- 검색 후 페이지를 이동하면 검색 조건이 사라지는 문제
+- 검색 후 화면에서는 어떤 검색 조건과 키워드를 이용했는지 알 수 없는 문제
+
+**검색 버튼의 이벤트 처리**
+
+검색 버튼을 클릭하면 검색은 1페이지를 하도록 수정하고, 화면에 검색 조건과 키워드가 보이게 한다.
+
+```js
+var searchForm = $("#searchForm");
+
+$("#searchForm button").on("click", function(e) {
+  if (!searchForm.find("option:selected").val()) {
+    alert("검색종류를 선택하세요");
+    return false;
+  }
+  if (!searchForm.find("input[name='keyword']").val()) {
+    alert("키워드를 입력하세요");
+    return false;
+  }
+  searchForm.find("input[name='pageNum']").val("1");
+  e.preventDefault();
+  
+  searchForm.submit();
+
+});
+```
+
+브라우저에서 검색 버튼을 클릭하면 `<form>` 태그의 전송은 막고, 페이지 번호는 1이 되도록 처리한다. 화면에서 키워드가 없다면 검색을 하지 않도록 제어한다.
+
+검색 후에는 주소창에 검색 조건과 키워드가 같이 GET 방식으로 처리되므로 이를 이용해서 `<select>` 태그나 `<input>` 태그의 내용을 수정한다.
+
+```jsp
+<div class='row'>
+  <div class="col-lg-12">
+    <form id='searchForm' action="/board/list" method='get'>
+      <select name='type'>
+        <option value="" 
+                <c:out value="${pageMaker.cri.type==null? 'selected':''}"/>>--</option>
+        <option value="T" 
+                <c:out value="${pageMaker.cri.type eq 'T'? 'selected':''}"/>>제목</option>
+        <option value="C"
+                <c:out value="${pageMaker.cri.type eq 'C'? 'selected':''}"/>>내용</option>
+        <option value="W"
+                <c:out value="${pageMaker.cri.type eq 'W'? 'selected':''}"/>>작성자</option>
+        <option value="TC"
+                <c:out value="${pageMaker.cri.type eq 'TC'? 'selected':''}"/>>제목 or 내용</option>
+        <option value="TW"
+                <c:out value="${pageMaker.cri.type eq 'TW'? 'selected':''}"/>>제목 or 작성자</option>
+        <option value="TCW"
+                <c:out value="${pageMaker.cri.type eq 'TCW'? 'selected':''}"/>>제목 or 내용 or 작성자</option>
+      </select>
+      <input type='text' name='keyword'/>
+      <input type='hidden' name='pageNum' value='${pageMaker.cri.pageNum}'>
+      <input type='hidden' name='amount' value='${pageMaker.cri.amount}'>
+      <button class='btn btn-default'>
+        Search
+      </button>
+    </form>
+  </div>
+</div>
+```
+
+`<select>` 태그의 내부는 삼항 연산자를 이용해서 해당 조건으로 검색되었다면 'selected'라는 문자열을 출력하게 해서 화면에서 선택된 항목으로 보이도록 한다.
+
+페이지 번호를 클릭해서 이동할 때도 검색 조건과 키워드는 같이 전달되어야 하므로 페이지 이동에 사용한 `<form>` 태그를 다음과 같이 수정한다.
+
+```jsp
+<form id='actionForm' action="/board/list" method='get'>
+  <input type='hidden' name='pageNum' value='${pageMaker.cri.pageNum}'>
+  <input type='hidden' name='amount' value='${pageMaker.cri.amount}'>
+  <input type='hidden' name='type' value='<c:out value="${pageMaker.cri.type}"/>'>
+  <input type='hidden' name='keyword' value= '<c:out value="${pageMaker.cri.type}"/>'>
+</form>
+```
+
+검색 조건과 키워드에 대한 처리가 되면 검색 후 페이지를 이동해서 동일한 검색 사항들이 계속 유지된다.
+
+**조회 페이지에서 검색 처리**
+
+```jsp
+<form id='actionForm' action="/board/modify" method='get'>
+  <input type='hidden' id='bno' name='bno' value='<c:out value="${board.bno}"/>'>
+  <input type='hidden' name='pageNum' value='${pageMaker.cri.pageNum}'>
+  <input type='hidden' name='amount' value='${pageMaker.cri.amount}'>
+  <input type='hidden' name='type' value='<c:out value="${pageMaker.cri.type}"/>'>
+  <input type='hidden' name='keyword' value= '<c:out value="${pageMaker.cri.keyword}"/>'>
+</form>
+```
+
+**수정/삭제 페이지에 검색 처리**
+
+```jsp
+<form id='actionForm' action="/board/modify" method='post'>
+  <input type='hidden' name='pageNum' value='${pageMaker.cri.pageNum}'>
+  <input type='hidden' name='amount' value='${pageMaker.cri.amount}'>
+  <input type='hidden' name='type' value='<c:out value="${pageMaker.cri.type}"/>'>
+  <input type='hidden' name='keyword' value= '<c:out value="${pageMaker.cri.keyword}"/>'>
+</form>
+```
+
+수정/삭제 처리는 BoardController에서 redirect 방식으로 동작하므로 type와 keyword 조건을 같이 리다이렉트 시에 포함시켜야 한다.
+
+```java
+@PostMapping("/modify")
+public String modify(BoardVO board, @ModelAttribute("cri") Criteria cri, RedirectAttributes rttr) {
+  log.info("modify: " + board);
+  
+  if (service.modify(board)) {
+    rttr.addFlashAttribute("result", "success");
+  }
+  
+  rttr.addAttribute("pageNum", cri.getPageNum());
+  rttr.addAttribute("amount", cri.getAmount());
+  rttr.addAttribute("amount", cri.getType());
+  rttr.addAttribute("amount", cri.getKeyword());
+  
+  return "redirect:/board/list";
+}
+
+@PostMapping("/remove")
+public String remove(@RequestParam("bno") Long bno, @ModelAttribute("cri") Criteria cri, RedirectAttributes rttr) {
+  log.info("remove: " + board);
+  
+  if (service.remove(board)) {
+    rttr.addFlashAttribute("result", "success");
+  }
+  
+  rttr.addAttribute("pageNum", cri.getPageNum());
+  rttr.addAttribute("amount", cri.getAmount());
+  rttr.addAttribute("amount", cri.getType());
+  rttr.addAttribute("amount", cri.getKeyword());
+  
+  return "redirect:/board/list";
+}
+```
+
+리다이렉트는 GET 방식으로 이루어지기 때문에 추가적인 파라미터를 처리해야 한다. modify.jsp에서는 다시 목록으로 이동하는 경우에 필요한 파라미터만 전송하기 위해서 `<form>`태그의 모든 내용을 지우고 다시 추가하는 방식을 이용했으므로 keyword와 type 역시 추가하도록 아래와 같이 관련된 JS 코드를 수정해야 한다.
+
+```js
+$(document).ready(function(){
+  
+  var formObj = $("form");
+  
+  $('button').on("click", function(e) {
+    
+    e.preventDefault();
+    
+    var operation = $(this).data("oper");
+    
+    console.log(operation);
+    
+    if(operation === 'remove') {
+      formObj.attr("action", "/board/remove");
+    } else if (operation === 'list') {
+      //move to list
+      formObj.attr("action", "/board/list").attr("method", get);
+      var pageNumTag = $("input[name='pageNum']").clone();
+      var amountTag = $("input[name='amount']").clone();
+      var keywordTag = $("input[name='keyword']").clone();
+      var typeTag = $("input[name='type']").clone();
+      
+      formObj.empty();
+      formObj.append(pageNumTag);
+      formObj.append(amountTag);
+      formObj.append(keywordTag);
+      formObj.append(typeTag);
+    }
+    formObj.submit();
+  });
+});
+```
+
+**UriComponentsBuilder를 이용하는 링크 생성**
+
+- 웹페이지에서 매번 파라미터를 유지하는 일이 번거롭고 힘들다면 org.springframework.web.util.UriComponentsBuilder 클래스를 사용해볼 수 있다.
+- 이 클래스는 여러 개의 파라미터를 연결해서 URL의 형태로 만들어주는 기능을 가지고 있다.
+- URL을 만들어주면 리다이렉트를 하거나, `<form>` 태그를 사용하는 상황을 많이 줄일 수 있다. 검색 조건을 유지하는 org.zerock.domain.Criteria 클래스에 링크를 생성하는 기능을 추가한다.
+
+Criteria
+
+```java
+public String getListLink() {
+  UriComponentsBuilder builder = UriComponentsBuilder.fromPath("")
+    .queryParam("pageNum", this.pageNum)
+    .queryParam("amount", this.getAmount())
+    .queryParam("type", this.getType())
+    .queryParam("keyword", this.getKeyword);
+  
+  return builder.toUriString();
+}
+```
+
+UriComponentsBuilder는 queryParam()이라는 메서드를 이용해 필요한 데이터들을 손쉽게 추가할 수 있다. getListLink()의 결과는 GET 방식에 적합한 URL인코딩된 결과로 만들어진다. 특히, 한글 처리에 신경쓰지 않아도 되어서 굉장히 편리하다. 
+
+getListLink()를 이용하면 BoardControllerㅡ이 modify()와 remove()를 다음과 같이 간단하게 정리할 수 있다.
+
+```java
+@PostMapping("/modify")
+public String modify(BoardVO board, @ModelAttribute("cri") Criteria cri, RedirectAttributes rttr) {
+  log.info("modify: " + board);
+  
+  if (service.modify(board)) {
+    rttr.addFlashAttribute("result", "success");
+  }
+  
+  return "redirect:/board/list" + cri.getListLink();
+}
+
+@PostMapping("/remove")
+public String remove(@RequestParam("bno") Long bno, @ModelAttribute("cri") Criteria cri, RedirectAttributes rttr) {
+  log.info("remove: " + board);
+  
+  if (service.remove(board)) {
+    rttr.addFlashAttribute("result", "success");
+  }
+  
+  rttr.addAttribute("pageNum", cri.getPageNum());
+  rttr.addAttribute("amount", cri.getAmount());
+  rttr.addAttribute("amount", cri.getType());
+  rttr.addAttribute("amount", cri.getKeyword());
+  
+  return "redirect:/board/list" + cri.getListLink();
+}
+```
+
+UriComponentsBuilder로 생성된 URL은 화면에서도 유용하게 사용될 수 있는데, 주로 JS를 사용할 수 없는 상황에서 링크를 처리해야 하는 상황에서 사용된다.
