@@ -1965,4 +1965,4 @@ public String remove(@RequestParam("bno") Long bno, @ModelAttribute("cri") Crite
 }
 ```
 
-UriComponentsBuilder로 생성된 URL은 화면에서도 유용하게 사용될 수 있는데, 주로 JS를 사용할 수 없는 상황에서 링크를 처리해야 하는 상황에서 사용된다.
+UriComponentsBuilder로 생성된 URL은 화면에서도 유용하게 사용될 수 있는데, 주로 JS를 사용할 수 없는 상황에서 링크를 처리해야 하는 상황에서 사용된다
