@@ -52,7 +52,7 @@ public class SampleControllerTests {
         
         log.info(jsonStr);
 
-        mockMvc.perform(post("/sample")
+        mockMvc.perform(post("/sample/ticket")
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonStr))
             .andExpect(status().is(200));
