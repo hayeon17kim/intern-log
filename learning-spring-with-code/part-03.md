@@ -1817,6 +1817,8 @@ $("#searchForm button").on("click", function(e) {
 
 검색 조건과 키워드에 대한 처리가 되면 검색 후 페이지를 이동해서 동일한 검색 사항들이 계속 유지된다.
 
+![EL8xA%pcRlKklas16Cj64Q_thumb_a51f](https://user-images.githubusercontent.com/50407047/112355333-e374ae00-8d10-11eb-9087-8047af186aee.jpg)
+
 **조회 페이지에서 검색 처리**
 
 ```jsp
