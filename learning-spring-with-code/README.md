@@ -7,3 +7,5 @@
 - [Part 3. 기본적인 웹 게시물 관리](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-03.md)
 - [Part 4. REST 방식과 Ajax를 이용하는 댓글 처리](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-04.md)
 - [Part 5. AOP와 트랜잭션](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-05.md)
+- [Part 7. Spring Web Security를 이용한 로그인 처리](https://github.com/hayeon17kim/intern-log/blob/main/learning-spring-with-code/part-07.md)
+
