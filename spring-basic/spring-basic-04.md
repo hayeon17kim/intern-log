@@ -367,3 +367,153 @@ ApplicationContext는 위 인터페이스들을 받고 있다.
 - XML 설정 사용
   - XML을 사용하면 **컴파일 없이 빈 설정 정보를 변경할 수 있다는 장점**이 있다.
   - `GenericXmlApplicationContext`를 사용하면서 `xml`설정 파일을 넘기면 된다. 
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+  <bean id="memberService" class="hello.core.member.MemberServiceImpl">
+    <constructor-arg name="memberRepository" ref="memberRepository"/>
+  </bean>
+
+  <bean id="memberRepository" class="hello.core.member.MemoryMemberRepository"/>
+
+  <bean id="orderService" class="hello.core.order.OrderServiceImpl">
+    <constructor-arg name="memberRepository" ref="memberRepository"/>
+    <constructor-arg name="discountPolicy" ref="discountPolicy"/>
+  </bean>
+
+  <bean id="discountPolicy" class="hello.core.discount.RateDiscountPolicy"/>
+</beans>
+```
+
+## 스프링 빈 설정 메타 정보 - BeanDefinition
+
+- 스프링은 어떻게 이렇게 다양한 설정 형식을 지원하는 것일까? 그 중심에는 `BeanDefinition` 이라는 **추상화**가 있다.
+- **역할과 구현을 개념적으로 나눈 것** 이다.
+  - 자바 코드 혹은 XML을 읽어서 `BeanDefinition` 을 만들면 된다.
+  - 스프링 컨테이너는 자바 코드인지, XML인지 몰라도 된다. 오직 `BeanDefinition`만 알면 된다.
+- `BeanDefinition` 을 **빈 설정 메타 정보** 라 한다.
+  - `@Bean`, `<bean>` 당 **각각 하나의 메타 정보가 생성**된다.
+- 스프링 컨테이너는 이 메타 정보를 기반으로 스프링 빈을 생성한다.
+  - 스프링 컨테이너 자체는 BeanDefinition(추상화)에만 의존한다. 
+
+
+
+
+
+![image](https://user-images.githubusercontent.com/50407047/113096954-1cd97c00-9231-11eb-9165-524d8b7b0b22.png)
+
+**코드 레벨로 깊이있게 들어가보자.**
+
+```java
+public class AnnotationConfigApplicationContext extends GenericApplicationContext implements AnnotationConfigRegistry {
+
+   private final AnnotatedBeanDefinitionReader reader;
+
+   private final ClassPathBeanDefinitionScanner scanner;
+  //..
+```
+
+```java
+public class GenericXmlApplicationContext extends GenericApplicationContext {
+
+	private final XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this);
+```
+
+![image](https://user-images.githubusercontent.com/50407047/113098302-472c3900-9233-11eb-82f6-9917123e36c1.png)
+
+- `AnnotationConfigApplicationContext` 는 `AnnotationBeanDefinitionReader`를 통해서 `AppConfig.class`를 읽고, `BeanDefinition`을 생성한다. 
+- `GenericXmlApplicationContext`는 `XmlBeanDefinitionReader`를 통해서 `appConfig.xml`을 읽고, `BeanDefinition`을 생성한다.
+- **새로운 형식의 설정 정보가 추가되면, XxxBeanDefinition을 만들어서 `BeanDefinition`을 생성하면 된다.**
+
+### BeanDefinition 살펴보기
+
+- beanClassName: 생성할 빈의 클래스명(자바 설정 때처럼 팩토리 역할의 빈을 사용하면 없음)
+- factoryBeanName: 팩토리 역할의 빈을 사용할 경우 이름, ex) appConfig
+- factoryMethodName: 빈을 생성할 팩토리 메서드 지정 ex) memberService
+- Scope: 싱글톤(기본값)
+- lazyInit: 스프링 컨테이너를 생성할 때 빈을 생성하는 것이 아니라, 실제 빈을 사용할 때까지 최대한 생성을 지연처리하는지 여부
+- initMethodName: 빈을 생성하고, 의존관계를 적용한 뒤에 호출되는 초기화 메서드 명
+- DestroyMethodName: 빈의 생성주기가 끝나서 제거하기 직전에 호출되는 메서드 명
+- Constructor arguments, Properties: 의존관계 주입에서 사용한다. (자바 설정처럼 팩토리 역할의 빈을 사용하면 없음)
+
+```java
+public class BeanDefinitionTest {
+   // ApplicationContext ac 를 안 하는 이유?
+   // ac.getBeanDefinition을 못하기 때문!
+    AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class);
+
+    @Test
+    @DisplayName("빈 설정 메타정보 확인")
+    void findApplicationBean() {
+        String[] beanDefinitionNames = ac.getBeanDefinitionNames();
+        for (String beanDefinitionName : beanDefinitionNames) {
+            BeanDefinition beanDefinition = ac.getBeanDefinition(beanDefinitionName);
+
+            if (beanDefinition.getRole() == BeanDefinition.ROLE_APPLICATION) {
+                System.out.println("beanDefinitionName = " + beanDefinitionName +
+                    " beanDefinition = " + beanDefinition);
+            }
+        }
+    }
+}
+
+```
+
+스프링에 빈을 등록하는 방법
+
+- 직접 스프링 빈을 등록한다.
+
+- 팩토리 메서드를 사용한다: JavaConfig를 이용하는 방법이 여기에 해당한다. 자바
+
+  ```java
+  @Configuration
+  public class AppConfig {
+    @Bean
+    public MemberService memberService() {
+      // 직접 임의의 코드를 조작해서 넣을 수 있다. 
+      return new MemberServiceImpl(memberRepository());  
+    }
+    @Bean
+    public MemberRepository memberRepository() {
+        return new MemoryMemberRepository();
+    }
+  }
+  ```
+
+  > 팩토리 메서드 방식: 외부에서 메서드를 호출해서 생성이 되는 방식이다.
+
+  ```console
+  beanDefinitionName = orderService beanDefinition = Root bean: class [null]; scope=; abstract=false; lazyInit=null; autowireMode=3; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=appConfig; factoryMethodName=orderService; 
+  ```
+
+- beanDefinition = Root bean: class [null]
+
+- factoryBeanName=appConfig
+
+- factoryMethodName=orderService
+
+
+
+결론
+
+- BeanDefinition을 직접 생성해서 스프링 컨테이너에 등록할 수 있다. 하지만 실무에서 BeanDefinition을 직접 정의하거나 사용할 일은 거의 없다.
+- BeanDefinition에 대해서는 너무 깊이있게 이해하기 보다는, 스프링이 다양한 형태의 설정 정보를 BeanDefinition으로 추상화해서 사용하는 것 정도만 알면 된다.
+
+
+
+
+
+
+
+테스트 컨트롤러
+
+- interceptor, aop를 거치고 최종 코드를 만드는데, 이걸 지정하지 않으면 해당되는 빈에서 꺼낼 방법이 없어서 이 두개를 지정해줘야 한다. 테스트코드에서 메인 내부에 있는 코드를 실행시켜줄 빈 팩토리를 가져올 코드가 
+- @SpringBootTest
+- @RunWith(실행시켜줄 클래스): 이걸 안하면 어플리케이션 컨텍스트를 못 사용한다. 이걸 나중에 테스트 할 때. 
+- 메인을 거치지 않기 때문에 
+
+
